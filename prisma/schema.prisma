@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String          @id @default(uuid())
+  age            Int
+  name           String? //Question mark ? means that this field is optional when creating
+  email          String          @unique //Learn if and only if here @unique is written only then we can use findUnique Method in Client Operations
+  role           Role            @default(BASIC) //This BASIC field inside @default() is a field of -> enum Role{}
+  preferences    Json? //This -> ? (Optional) is the 2nd Field Type Modifier.
+  writtenPosts   Post[]          @relation("WrittenPosts") //NOTE -> This Post[] was created when in model Post -> author User was saved
+  favoritePosts  Post[]          @relation("FavoritePosts") //NOTE -> This Post[] was created when in model Post -> author User was saved
+  //[] -> This is 1st Field Type modifier , this [] signifies there could be multiple Post.
+  UserPreference UserPreference? //NOTE->Here we removed the [] and replaced it by ? -> To achieve one to one relationship
+
+  @@unique([age, name]) //This @@unique Block Level Atribute is used for searching in client side via multiple fields
+  @@index([email]) //Now we are saying that my email represents my index number
+}
+
+model UserPreference {
+  id           String  @id @default(uuid())
+  emailUpdates Boolean
+  user         User    @relation(fields: [userId], references: [id])
+  userId       String  @unique //Learn ->We need to put @unique because if we make a one to one realtion with another model then its userid must be unique
+}
+
+model Post {
+  id            String     @id @default(uuid())
+  title         String
+  //NOTE -> Bytes is also a type which is used for storing large data
+  //NOTE -> Decimal is also a type which is used for storing Float type with precision
+  averageRating Float
+  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime   @default(now())
+  author        User       @relation("WrittenPosts", fields: [authorId], references: [id]) //We write relation name first in () of @relation in string-form 
+  authorId      String
+  favoritedBy   User?      @relation("FavoritePosts", fields: [favoritedById], references: [id])
+  favoritedById String?
+  categories    Category[] //As here we already defined the relation between Post and Category with [] hence @relation on saving was not generated
+  //blob      Unsupported("")//Unsupported Type is Used when we are giving an input type which is not yet supported by prisma
+
+  // @@id([title, authorId]) //@@id -> Means we are telling that title and authorId represent the id of the model
+}
+
+model Category {
+  id    String @id @default(uuid())
+  name  String @unique
+  posts Post[]
+}
+
+//List of All Model-Attributes of Prisma:
+// 1. @id
+// 2. @default
+// 3. @relation
+// 4. @unique
+// 5. @updatedAt -> It is used to update the DateTime type
+// 6. @default(now()) -> It inserts the exact timestamp of the time we insert data in DateTime type
+
+//Block Level Attribute ->These are the Attributes which are declared inside the Models:
+//Syntax of Block Level Attribute -> @@unique([property1,property2])
+
+//Topic->Enums
+enum Role {
+  BASIC
+  ADMIN
+}
